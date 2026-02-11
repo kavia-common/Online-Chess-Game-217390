@@ -1,5 +1,6 @@
-import pygame
 import os
+
+import pygame
 
 b_bishop = pygame.image.load(os.path.join("img", "black_bishop.png"))
 b_king = pygame.image.load(os.path.join("img", "black_king.png"))
@@ -63,13 +64,13 @@ class Piece:
 
         win.blit(drawThis, (x, y))
 
-        '''if self.selected and self.color == color:  # Remove false to draw dots
+        """if self.selected and self.color == color:  # Remove false to draw dots
             moves = self.move_list
 
             for move in moves:
                 x = 33 + round(self.startX + (move[0] * self.rect[2] / 8))
                 y = 33 + round(self.startY + (move[1] * self.rect[3] / 8))
-                pygame.draw.circle(win, (255, 0, 0), (x, y), 10)'''
+                pygame.draw.circle(win, (255, 0, 0), (x, y), 10)"""
 
     def change_pos(self, pos):
         self.row = pos[0]
@@ -173,9 +174,19 @@ class King(Piece):
             if j > 0:
                 p = board[i - 1][j - 1]
                 if p == 0:
-                    moves.append((j - 1, i - 1,))
+                    moves.append(
+                        (
+                            j - 1,
+                            i - 1,
+                        )
+                    )
                 elif p.color != self.color:
-                    moves.append((j - 1, i - 1,))
+                    moves.append(
+                        (
+                            j - 1,
+                            i - 1,
+                        )
+                    )
 
             # TOP MIDDLE
             p = board[i - 1][j]
@@ -188,18 +199,38 @@ class King(Piece):
             if j < 7:
                 p = board[i - 1][j + 1]
                 if p == 0:
-                    moves.append((j + 1, i - 1,))
+                    moves.append(
+                        (
+                            j + 1,
+                            i - 1,
+                        )
+                    )
                 elif p.color != self.color:
-                    moves.append((j + 1, i - 1,))
+                    moves.append(
+                        (
+                            j + 1,
+                            i - 1,
+                        )
+                    )
 
         if i < 7:
             # BOTTOM LEFT
             if j > 0:
                 p = board[i + 1][j - 1]
                 if p == 0:
-                    moves.append((j - 1, i + 1,))
+                    moves.append(
+                        (
+                            j - 1,
+                            i + 1,
+                        )
+                    )
                 elif p.color != self.color:
-                    moves.append((j - 1, i + 1,))
+                    moves.append(
+                        (
+                            j - 1,
+                            i + 1,
+                        )
+                    )
 
             # BOTTOM MIDDLE
             p = board[i + 1][j]
@@ -351,7 +382,6 @@ class Pawn(Piece):
                             moves.append((j, i + 2))
             # WHITE
             else:
-
                 if i > 0:
                     p = board[i - 1][j]
                     if p == 0:
@@ -377,7 +407,8 @@ class Pawn(Piece):
                                 moves.append((j, i - 2))
                         elif p.color != self.color:
                             moves.append((j, i - 2))
-        except:
+        except (IndexError, AttributeError, TypeError):
+            # Preserve original behavior: ignore invalid board access / unexpected slots.
             pass
 
         return moves
@@ -549,4 +580,3 @@ class Rook(Piece):
                 break
 
         return moves
-

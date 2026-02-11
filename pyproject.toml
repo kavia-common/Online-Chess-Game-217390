@@ -1,0 +1,22 @@
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+
+[tool.ruff.lint]
+# Keep this relatively conservative; focus on common correctness/style.
+select = ["E", "F", "W", "I", "B"]
+ignore = [
+  # We'll keep some legacy patterns as-is where changing could be behavior-affecting.
+]
+fixable = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+# This project has legacy/educational code patterns; allow broader exceptions
+# where refactoring would be more invasive.
+"game.py" = ["E402"]
+"piece.py" = []
+"server.py" = []

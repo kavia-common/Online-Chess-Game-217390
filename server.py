@@ -1,8 +1,9 @@
-import socket
-from _thread import *
-from board import Board
 import pickle
+import socket
 import time
+from _thread import start_new_thread
+
+from board import Board
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -13,7 +14,6 @@ server_ip = socket.gethostbyname(server)
 
 try:
     s.bind((server, port))
-
 except socket.error as e:
     print(str(e))
 
@@ -22,10 +22,11 @@ print("[START] Waiting for a connection")
 
 connections = 0
 
-games = {0:Board(8, 8)}
+games = {0: Board(8, 8)}
 
-spectartor_ids = [] 
+spectartor_ids = []
 specs = 0
+
 
 def read_specs():
     global spectartor_ids
@@ -35,13 +36,13 @@ def read_specs():
         with open("specs.txt", "r") as f:
             for line in f:
                 spectartor_ids.append(line.strip())
-    except:
+    except OSError:
         print("[ERROR] No specs.txt file found, creating one...")
-        open("specs.txt", "w")
+        open("specs.txt", "w").close()
 
 
 def threaded_client(conn, game, spec=False):
-    global pos, games, currentId, connections, specs
+    global games, connections, specs
 
     if not spec:
         name = None
@@ -75,10 +76,10 @@ def threaded_client(conn, game, spec=False):
                     break
                 else:
                     if data.count("select") > 0:
-                        all = data.split(" ")
-                        col = int(all[1])
-                        row = int(all[2])
-                        color = all[3]
+                        all_parts = data.split(" ")
+                        col = int(all_parts[1])
+                        row = int(all_parts[2])
+                        color = all_parts[3]
                         bo.select(col, row, color)
 
                     if data == "winner b":
@@ -98,8 +99,6 @@ def threaded_client(conn, game, spec=False):
                         elif currentId == "w":
                             bo.p1Name = name
 
-                    #print("Recieved board from", currentId, "in game", game)
-
                     if bo.ready:
                         if bo.turn == "w":
                             bo.time1 = 900 - (time.time() - bo.startTime) - bo.storedTime1
@@ -107,18 +106,17 @@ def threaded_client(conn, game, spec=False):
                             bo.time2 = 900 - (time.time() - bo.startTime) - bo.storedTime2
 
                     sendData = pickle.dumps(bo)
-                    #print("Sending board to player", currentId, "in game", game)
 
                 conn.sendall(sendData)
 
             except Exception as e:
                 print(e)
-        
+
         connections -= 1
         try:
             del games[game]
             print("[GAME] Game", game, "ended")
-        except:
+        except KeyError:
             pass
         print("[DISCONNECT] Player", name, "left game", game)
         conn.close()
@@ -150,10 +148,10 @@ def threaded_client(conn, game, spec=False):
                             print("[SPECTATOR] Moved Games back")
                             game_ind -= 1
                             if game_ind < 0:
-                                game_ind = len(available_games) -1
+                                game_ind = len(available_games) - 1
 
                         bo = games[available_games[game_ind]]
-                    except:
+                    except (KeyError, IndexError):
                         print("[ERROR] Invalid Game Recieved from Spectator")
 
                     sendData = pickle.dumps(bo)
@@ -176,25 +174,25 @@ while True:
         print("[CONNECT] New connection")
 
         for game in games.keys():
-            if games[game].ready == False:
-                g=game
+            if games[game].ready is False:
+                g = game
 
         if g == -1:
             try:
-                g = list(games.keys())[-1]+1
-                games[g] = Board(8,8)
-            except:
+                g = list(games.keys())[-1] + 1
+                games[g] = Board(8, 8)
+            except Exception:
                 g = 0
-                games[g] = Board(8,8)
+                games[g] = Board(8, 8)
 
-        '''if addr[0] in spectartor_ids and specs == 0:
+        """if addr[0] in spectartor_ids and specs == 0:
             spec = True
             print("[SPECTATOR DATA] Games to view: ")
             print("[SPECTATOR DATA]", games.keys())
             g = 0
-            specs += 1'''
+            specs += 1"""
 
-        print("[DATA] Number of Connections:", connections+1)
+        print("[DATA] Number of Connections:", connections + 1)
         print("[DATA] Number of Games:", len(games))
 
-        start_new_thread(threaded_client, (conn,g,spec))
+        start_new_thread(threaded_client, (conn, g, spec))
