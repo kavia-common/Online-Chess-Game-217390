@@ -1,9 +1,21 @@
+import os
 import pickle
 import socket
 import time
 from _thread import start_new_thread
 
 from board import Board
+
+
+def _pickle_allowed():
+    """Return True if insecure pickle network transport is allowed.
+
+    SECURITY: This app historically uses pickle to send Board objects over TCP.
+    Unpickling data from a network peer can execute arbitrary code. We keep the
+    default behavior for compatibility, but allow deployments to disable it by
+    setting CHESS_ALLOW_PICKLE=0.
+    """
+    return os.getenv("CHESS_ALLOW_PICKLE", "1") not in {"0", "false", "False"}
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -55,7 +67,11 @@ def threaded_client(conn, game, spec=False):
 
         bo.start_user = currentId
 
-        # Pickle the object and send it to the server
+        # SECURITY NOTE: Pickle over the network is unsafe; see _pickle_allowed().
+        if not _pickle_allowed():
+            raise RuntimeError(
+                "Insecure pickle transport disabled (set CHESS_ALLOW_PICKLE=1 to enable)."
+            )
         data_string = pickle.dumps(bo)
 
         if currentId == "b":
@@ -109,7 +125,7 @@ def threaded_client(conn, game, spec=False):
 
                 conn.sendall(sendData)
 
-            except Exception as e:
+            except (socket.error, UnicodeDecodeError, ValueError, IndexError) as e:
                 print(e)
 
         connections -= 1
@@ -181,7 +197,7 @@ while True:
             try:
                 g = list(games.keys())[-1] + 1
                 games[g] = Board(8, 8)
-            except Exception:
+            except (IndexError, TypeError):
                 g = 0
                 games[g] = Board(8, 8)
 

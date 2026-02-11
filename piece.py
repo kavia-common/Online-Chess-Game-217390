@@ -2,31 +2,44 @@ import os
 
 import pygame
 
-b_bishop = pygame.image.load(os.path.join("img", "black_bishop.png"))
-b_king = pygame.image.load(os.path.join("img", "black_king.png"))
-b_knight = pygame.image.load(os.path.join("img", "black_knight.png"))
-b_pawn = pygame.image.load(os.path.join("img", "black_pawn.png"))
-b_queen = pygame.image.load(os.path.join("img", "black_queen.png"))
-b_rook = pygame.image.load(os.path.join("img", "black_rook.png"))
+# Image assets were previously loaded and scaled at import time, which makes
+# importing this module fail in headless/static-analysis contexts (or if assets
+# are missing). We lazily load/scale on first use instead.
+_B_SCALED = None
+_W_SCALED = None
 
-w_bishop = pygame.image.load(os.path.join("img", "white_bishop.png"))
-w_king = pygame.image.load(os.path.join("img", "white_king.png"))
-w_knight = pygame.image.load(os.path.join("img", "white_knight.png"))
-w_pawn = pygame.image.load(os.path.join("img", "white_pawn.png"))
-w_queen = pygame.image.load(os.path.join("img", "white_queen.png"))
-w_rook = pygame.image.load(os.path.join("img", "white_rook.png"))
 
-b = [b_bishop, b_king, b_knight, b_pawn, b_queen, b_rook]
-w = [w_bishop, w_king, w_knight, w_pawn, w_queen, w_rook]
+def _load_scaled_piece_images():
+    """Load and scale piece images on demand.
 
-B = []
-W = []
+    Returns:
+        tuple[list[pygame.Surface], list[pygame.Surface]]: (black_images, white_images)
+        where each list is ordered [bishop, king, knight, pawn, queen, rook].
+    """
+    global _B_SCALED, _W_SCALED
+    if _B_SCALED is not None and _W_SCALED is not None:
+        return _B_SCALED, _W_SCALED
 
-for img in b:
-    B.append(pygame.transform.scale(img, (55, 55)))
+    b_bishop = pygame.image.load(os.path.join("img", "black_bishop.png"))
+    b_king = pygame.image.load(os.path.join("img", "black_king.png"))
+    b_knight = pygame.image.load(os.path.join("img", "black_knight.png"))
+    b_pawn = pygame.image.load(os.path.join("img", "black_pawn.png"))
+    b_queen = pygame.image.load(os.path.join("img", "black_queen.png"))
+    b_rook = pygame.image.load(os.path.join("img", "black_rook.png"))
 
-for img in w:
-    W.append(pygame.transform.scale(img, (55, 55)))
+    w_bishop = pygame.image.load(os.path.join("img", "white_bishop.png"))
+    w_king = pygame.image.load(os.path.join("img", "white_king.png"))
+    w_knight = pygame.image.load(os.path.join("img", "white_knight.png"))
+    w_pawn = pygame.image.load(os.path.join("img", "white_pawn.png"))
+    w_queen = pygame.image.load(os.path.join("img", "white_queen.png"))
+    w_rook = pygame.image.load(os.path.join("img", "white_rook.png"))
+
+    b_raw = [b_bishop, b_king, b_knight, b_pawn, b_queen, b_rook]
+    w_raw = [w_bishop, w_king, w_knight, w_pawn, w_queen, w_rook]
+
+    _B_SCALED = [pygame.transform.scale(img, (55, 55)) for img in b_raw]
+    _W_SCALED = [pygame.transform.scale(img, (55, 55)) for img in w_raw]
+    return _B_SCALED, _W_SCALED
 
 
 class Piece:
@@ -51,10 +64,11 @@ class Piece:
         self.move_list = self.valid_moves(board)
 
     def draw(self, win, color):
+        b_scaled, w_scaled = _load_scaled_piece_images()
         if self.color == "w":
-            drawThis = W[self.img]
+            drawThis = w_scaled[self.img]
         else:
-            drawThis = B[self.img]
+            drawThis = b_scaled[self.img]
 
         x = (4 - self.col) + round(self.startX + (self.col * self.rect[2] / 8))
         y = 3 + round(self.startY + (self.row * self.rect[3] / 8))

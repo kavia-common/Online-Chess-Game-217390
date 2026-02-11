@@ -5,6 +5,15 @@ import pygame
 from piece import Bishop, King, Knight, Pawn, Queen, Rook
 
 
+def _copy_board_grid(grid):
+    """Return a shallow row-wise copy of the board grid (2D list).
+
+    This avoids accidental aliasing of row lists when performing tentative moves.
+    Pieces themselves are not copied (they are mutated in-place as before).
+    """
+    return [row[:] for row in grid]
+
+
 class Board:
     rect = (113, 113, 525, 525)
     startX = rect[0]
@@ -224,10 +233,22 @@ class Board:
 
         return False
 
+    # PUBLIC_INTERFACE
     def move(self, start, end, color):
+        """Move a piece from start->end if it results in a legal position.
+
+        This method performs a tentative move, checks whether the moving side is in
+        check afterward, and reverts if illegal.
+
+        Notes:
+        - We intentionally copy the 2D grid structure (rows) to avoid list aliasing.
+        - We do not deep-copy piece objects to preserve original in-place mutation
+          behavior (e.g., moved/first flags and positions).
+        """
         checkedBefore = self.is_checked(color)
         changed = True
-        nBoard = self.board[:]
+
+        nBoard = _copy_board_grid(self.board)
         if nBoard[start[0]][start[1]].pawn:
             nBoard[start[0]][start[1]].first = False
 
@@ -238,7 +259,8 @@ class Board:
 
         if self.is_checked(color) or (checkedBefore and self.is_checked(color)):
             changed = False
-            nBoard = self.board[:]
+
+            nBoard = _copy_board_grid(self.board)
             if nBoard[end[0]][end[1]].pawn:
                 nBoard[end[0]][end[1]].first = True
 

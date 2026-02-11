@@ -91,7 +91,7 @@ def menu_screen(win, name):
                     run = False
                     main()
                     break
-                except Exception:
+                except (OSError, ConnectionError, TimeoutError):
                     print("Server Offline")
                     offline = True
 
@@ -276,9 +276,16 @@ def main():
     menu_screen(win)
 
 
-name = input("Please type your name: ")
-width = 750
-height = 750
-win = pygame.display.set_mode((width, height))
-pygame.display.set_caption("Chess Game")
-menu_screen(win, name)
+def _run_game():
+    """Interactive entrypoint for the pygame client."""
+    global name, width, height, win
+    name = input("Please type your name: ")
+    width = 750
+    height = 750
+    win = pygame.display.set_mode((width, height))
+    pygame.display.set_caption("Chess Game")
+    menu_screen(win, name)
+
+
+if __name__ == "__main__":
+    _run_game()

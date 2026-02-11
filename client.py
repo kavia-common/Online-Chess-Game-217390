@@ -1,6 +1,16 @@
+import os
 import pickle
 import socket
 import time
+
+
+def _pickle_allowed():
+    """Return True if insecure pickle network transport is allowed.
+
+    SECURITY: Unpickling network data is dangerous. Kept for compatibility.
+    Set CHESS_ALLOW_PICKLE=0 to refuse to unpickle and fail fast.
+    """
+    return os.getenv("CHESS_ALLOW_PICKLE", "1") not in {"0", "false", "False"}
 
 
 class Network:
@@ -10,6 +20,10 @@ class Network:
         self.port = 5555
         self.addr = (self.host, self.port)
         self.board = self.connect()
+        if not _pickle_allowed():
+            raise RuntimeError(
+                "Insecure pickle transport disabled (set CHESS_ALLOW_PICKLE=1 to enable)."
+            )
         self.board = pickle.loads(self.board)
 
     def connect(self):
@@ -33,9 +47,12 @@ class Network:
                     self.client.send(str.encode(data))
                 reply = self.client.recv(4096 * 8)
                 try:
+                    if not _pickle_allowed():
+                        # If disabled mid-run, keep returning raw bytes.
+                        break
                     reply = pickle.loads(reply)
                     break
-                except Exception as e:
+                except (pickle.UnpicklingError, EOFError, ValueError) as e:
                     print(e)
 
             except socket.error as e:
